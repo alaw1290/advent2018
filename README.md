@@ -4,3 +4,6 @@ Repo for my submissions to the advent coding challenges. Link to the stuff: http
 
 So far using the following languages and dependencies:
 - python(3.6)
+  - numpy
+  - string
+  - collections
