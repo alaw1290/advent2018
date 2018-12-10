@@ -1,63 +1,6 @@
 # day 7 challenge
 from collections import defaultdict
 from copy import deepcopy
-# class Node(object):
-#     def __init__(self, label, parent_labels, children_labels):
-#         self.label = label
-#         self.parent_labels = parent_labels
-#         self.children_labels = children_labels
-
-#     def __repr__(self):
-#         return self.label
-
-# class Tree(object):
-#     def __init__(self):
-#         self.tree = {}
-#         self.adjacency_dict = defaultdict(set)
-#         self.parents = set()
-#         self.children = set()
-
-#     def add_node(self, label, child_label):
-#         if label in adjacency_dict:     # node already in the tree
-#             tree[label].children_labels.add(child_label)    # update parent node in tree with child
-#             tree[child_label].children_labels.add(label)    # update child node in tree with parent
-#             adjacency_dict[label].add(child_label)  # track adjacency list updates
-#             self.parents.add(label)     # track all nodes that are parents
-#             self.children.add(child)    # track all nodes that are children
-#         else:
-#             node = Node(label, [], [child])
-
-
-# {'x':[y]} to {x:{y:None}}
-
-# def dict_to_tree_helper(node, adjacency_dict):
-#     if node not in adjacency_dict:
-#         return None
-#     else:
-#         children = adjacency_dict[node]
-#         del adjacency_dict[node]
-#         return {c:dict_to_tree(c, adjacency_dict) for c in children}
-
-# def dict_to_tree(root, adjacency_dict):
-#     return {root: dict_to_tree_helper(root, adjacency_dict)}
-
-# def get_layer(root, adjacency_dict, depth):
-#     current_depth = 0
-#     current_layer = adjacency_dict[root]
-#     while depth != current_depth:
-#         current_layer = [c for p in current_layer for c in adjacency_dict[p]]
-#         current_depth += 1
-#     return current_layer
-
-# def print_tree(root, end, adjacency_dict):
-#     tree = [root]
-#     depth = 0
-#     layer = []
-#     while end not in layer:
-#         layer = get_layer(root, adjacency_dict, depth)
-#         tree.append(sorted(layer))
-#         depth += 1
-#     print(tree)
 
 def greedy_scheduler(roots, adjacency_dict, dependencies_dict):
     schedule = []
@@ -68,30 +11,79 @@ def greedy_scheduler(roots, adjacency_dict, dependencies_dict):
             if len(dependencies) == 0:  # if all parents of the node are already in the schedule
                 schedule.append(step)   # add node to the schedule
                 next_available_steps.remove(step)   # remove node from the available shoices
-                for n in adjacency_dict[step]: # remove node from all other dependencies in its adjacencies
+                for n in adjacency_dict[step]:      # remove node from all other dependencies in its adjacencies
                     dependencies_dict[n].remove(step)   
                 # add all children of the node to the next available steps
                 next_available_steps = next_available_steps | adjacency_dict[step]
                 break
     return schedule
 
-def multi_scheduler(roots, num_processers, adjacency_dict, dependencies_dict, schedule):
+# def multi_scheduler(roots, num_processers, adjacency_dict, dependencies_dict, schedule):
+#     i = 0
+#     current_time = 0                # track current time
+#     workers = {i:None for i in range(num_processers)}  # track step per worker
+#     completed_jobs = []             # track completed 
+#     job_order = []                  # track acceptance order
+#     processing_jobs = {}            # track jobs in progress
+#     next_available_jobs = roots     # jobs available
+#     while len(completed_jobs) < len(schedule):         # while there are still jobs available
+#         for worker in workers:
+#             if not workers[worker] and len(next_available_jobs) > 0: # worker has no job and there are jobs
+#                 job = sorted(next_available_jobs)[0]    # get job from queue
+#                 next_available_jobs.remove(job)
+#                 workers[worker] = job                   # assign job 
+#                 job_order.append(job)
+#                 processing_jobs[job] = (ord(job) + 4, worker)   # track job and owner
+
+#         # once all workers have a job, wait until at least one job has finished
+#         next_time_increment, next_finished_job, next_available_worker = min([(processing_jobs[i][0], i, processing_jobs[i][1]) for i in processing_jobs])
+#         current_time += next_time_increment     # increment the time
+#         for i in processing_jobs:
+#             vals = processing_jobs[i]
+#             processing_jobs[i] = (vals[0]-next_time_increment,vals[1])  # count down remaining time for all other jobs
+#         del processing_jobs[next_finished_job]          # remove completed job from processing list
+#         completed_jobs.append(next_finished_job)        # complete the job
+#         workers[next_available_worker] = None           # open worker for next job
+#         for i in adjacency_dict:
+#             adjacency_dict[i].discard(next_finished_job)
+#         next_available_jobs = next_available_jobs.union(adjacency_dict[next_finished_job]) # add any available jobs next
+        
+
+#     print(f"min time schedule:   {''.join(completed_jobs)}")
+#     print(f"job order:           {''.join(job_order)}")
+#     return current_time
+
+def multi_scheduler(roots, num_processers, adjacency_dict, schedule):
     current_time = 0                # track current time
-    workers = {i:None for i in num_processers}  # track step per worker
-    completed_jobs = set()          # track completed 
+    job_order = []                  # track acceptance order
+    completed_jobs = []             # track completed 
     processing_jobs = {}            # track jobs in progress
     next_available_jobs = roots     # jobs available
-    while len(completed_jobs) != len(schedule):    # while there are still nodes available
-        for worker in workers:
-            if not workers[worker] and len(next_available_jobs) > 0: # worker has no job and there are jobs
-                job = next_available_jobs.pop() # get job from queue
-                workers[worker] = job           # assign job 
-                processing_jobs[job] = worker   # track job
-        # once all workers have a job, wait until at least one job has finished
-        next_time_increment, next_finished_job = min([(ord(i) - 64, i) for i in processing_jobs])
-        current_time += next_time_increment
-        completed_jobs.add(next_finished_job)
-        workers[processing_jobs[next_finished_job]] = None
+    while next_available_jobs or processing_jobs:         # while there are still jobs not completed
+        # start processing jobs until processers reach capacity or all jobs in queue are assigned
+        while len(processing_jobs) < num_processers and next_available_jobs:
+            job = min(next_available_jobs)
+            job_order.append(job)
+            next_available_jobs.remove(job)
+            job_time = ord(job) - 64
+            processing_jobs[job] = job_time
+
+        print(next_available_jobs)
+        print(processing_jobs)
+        # all processer assigned, finish the next available job
+        next_time_skip, next_finished_job = min([(processing_jobs[i], i) for i in processing_jobs])
+        current_time += next_time_skip
+        del processing_jobs[next_finished_job]
+        for i in processing_jobs:
+            processing_jobs[i] = processing_jobs[i] - next_time_skip
+
+        completed_jobs.append(next_finished_job)
+        next_available_jobs = next_available_jobs.union(set([i for i in adjacency_dict[next_finished_job] if i not in completed_jobs]))
+
+    print(f"min time schedule:   {''.join(completed_jobs)}")
+    print(f"job order:           {''.join(job_order)}")
+    return current_time
+
 
 def main():
     adjacency_dict = defaultdict(set)
@@ -109,11 +101,10 @@ def main():
             children_nodes.add(node_child)
 
     roots = (parent_nodes - children_nodes)
-    schedule = greedy_single_scheduler(roots,deepcopy(adjacency_dict),deepcopy(dependencies_dict))
+    schedule = greedy_scheduler(deepcopy(roots),deepcopy(adjacency_dict),deepcopy(dependencies_dict))
     print(f"schedule determined: {''.join(schedule)}")
-    
-
-
+    min_time = multi_scheduler(roots, 2, adjacency_dict, schedule)
+    print(f"min time determined: {min_time}")
     
 
 if __name__ == '__main__':
