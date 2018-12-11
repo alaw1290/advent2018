@@ -18,42 +18,8 @@ def greedy_scheduler(roots, adjacency_dict, dependencies_dict):
                 break
     return schedule
 
-# def multi_scheduler(roots, num_processers, adjacency_dict, dependencies_dict, schedule):
-#     i = 0
-#     current_time = 0                # track current time
-#     workers = {i:None for i in range(num_processers)}  # track step per worker
-#     completed_jobs = []             # track completed 
-#     job_order = []                  # track acceptance order
-#     processing_jobs = {}            # track jobs in progress
-#     next_available_jobs = roots     # jobs available
-#     while len(completed_jobs) < len(schedule):         # while there are still jobs available
-#         for worker in workers:
-#             if not workers[worker] and len(next_available_jobs) > 0: # worker has no job and there are jobs
-#                 job = sorted(next_available_jobs)[0]    # get job from queue
-#                 next_available_jobs.remove(job)
-#                 workers[worker] = job                   # assign job 
-#                 job_order.append(job)
-#                 processing_jobs[job] = (ord(job) + 4, worker)   # track job and owner
 
-#         # once all workers have a job, wait until at least one job has finished
-#         next_time_increment, next_finished_job, next_available_worker = min([(processing_jobs[i][0], i, processing_jobs[i][1]) for i in processing_jobs])
-#         current_time += next_time_increment     # increment the time
-#         for i in processing_jobs:
-#             vals = processing_jobs[i]
-#             processing_jobs[i] = (vals[0]-next_time_increment,vals[1])  # count down remaining time for all other jobs
-#         del processing_jobs[next_finished_job]          # remove completed job from processing list
-#         completed_jobs.append(next_finished_job)        # complete the job
-#         workers[next_available_worker] = None           # open worker for next job
-#         for i in adjacency_dict:
-#             adjacency_dict[i].discard(next_finished_job)
-#         next_available_jobs = next_available_jobs.union(adjacency_dict[next_finished_job]) # add any available jobs next
-        
-
-#     print(f"min time schedule:   {''.join(completed_jobs)}")
-#     print(f"job order:           {''.join(job_order)}")
-#     return current_time
-
-def multi_scheduler(roots, num_processers, adjacency_dict, schedule):
+def multi_scheduler(roots, num_processers, adjacency_dict, dependencies_dict, schedule):
     current_time = 0                # track current time
     job_order = []                  # track acceptance order
     completed_jobs = []             # track completed 
@@ -65,23 +31,21 @@ def multi_scheduler(roots, num_processers, adjacency_dict, schedule):
             job = min(next_available_jobs)
             job_order.append(job)
             next_available_jobs.remove(job)
-            job_time = ord(job) - 64
+            job_time = ord(job) -  4
             processing_jobs[job] = job_time
-
-        print(next_available_jobs)
-        print(processing_jobs)
         # all processer assigned, finish the next available job
         next_time_skip, next_finished_job = min([(processing_jobs[i], i) for i in processing_jobs])
         current_time += next_time_skip
         del processing_jobs[next_finished_job]
         for i in processing_jobs:
             processing_jobs[i] = processing_jobs[i] - next_time_skip
-
         completed_jobs.append(next_finished_job)
-        next_available_jobs = next_available_jobs.union(set([i for i in adjacency_dict[next_finished_job] if i not in completed_jobs]))
+        new_jobs = set([i for i in adjacency_dict[next_finished_job] if all([j in completed_jobs for j in dependencies_dict[i]])])
+        next_available_jobs = next_available_jobs.union(new_jobs)
 
     print(f"min time schedule:   {''.join(completed_jobs)}")
     print(f"job order:           {''.join(job_order)}")
+    
     return current_time
 
 
@@ -90,7 +54,7 @@ def main():
     parent_nodes    = set()
     children_nodes  = set()
     dependencies_dict = defaultdict(set)
-    with open('input_sample.txt', 'r') as file:
+    with open('input.txt', 'r') as file:
         for line in file:
             line = line.strip()
             node_parent = line[5]
@@ -103,7 +67,7 @@ def main():
     roots = (parent_nodes - children_nodes)
     schedule = greedy_scheduler(deepcopy(roots),deepcopy(adjacency_dict),deepcopy(dependencies_dict))
     print(f"schedule determined: {''.join(schedule)}")
-    min_time = multi_scheduler(roots, 2, adjacency_dict, schedule)
+    min_time = multi_scheduler(roots, 5, adjacency_dict, dependencies_dict, schedule)
     print(f"min time determined: {min_time}")
     
 
