@@ -1,3 +1,5 @@
+# day 9 challenge
+
 from collections import deque
 # def insert_marble(marble_n, marbles, current_marble_index):
 #     marble_n_index = ((current_marble_index + 1) % len(marbles)) + 1

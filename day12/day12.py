@@ -1,4 +1,5 @@
 # day 12 challenge
+
 # every sequence represented by bitstring
 # 32 (5^2) possible rules
 from tqdm import tqdm

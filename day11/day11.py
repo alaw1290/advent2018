@@ -1,3 +1,5 @@
+# day 11 challenge
+
 from tqdm import tqdm
 
 def get_cell_power(cell_x, cell_y, serial_number):
