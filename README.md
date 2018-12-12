@@ -7,5 +7,8 @@ So far using the following languages and dependencies:
   - numpy
   - string
   - collections
+  - datetime
+  - tqdm
+  - matplotlib
 
 Testing
